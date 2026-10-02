@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paraguay Flight Price Analysis</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0b1220;
+      --panel: #111c2e;
+      --border: #24334a;
+      --text: #e7edf6;
+      --muted: #98a8be;
+      --accent: #54d6a0;
+      --accent-soft: rgba(84, 214, 160, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 18px;
+      background: var(--background);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .dashboard {
+      width: min(100%, 1000px);
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 4vw, 2.5rem);
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .summary-card,
+    .chart-card,
+    .notice {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .summary-card {
+      padding: 18px;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .summary-value {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .chart-card {
+      padding: 22px;
+    }
+
+    .chart-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .chart-description {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend-line {
+      width: 19px;
+      height: 3px;
+      border-radius: 3px;
+      background: var(--accent);
+    }
+
+    .legend-range {
+      width: 19px;
+      height: 12px;
+      border: 1px solid rgba(84, 214, 160, 0.4);
+      border-radius: 3px;
+      background: var(--accent-soft);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 380px;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 650px) {
+      body {
+        padding: 22px 12px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-card {
+        padding: 16px;
+      }
+
+      .chart-container {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="dashboard">
+    <header>
+      <p class="eyebrow">Travel market overview</p>
+      <h1>Flights to Paraguay</h1>
+      <p class="subtitle">
+        Five-year view of illustrative round-trip economy fares to Asunción (ASU),
+        shown in U.S. dollars.
+      </p>
+    </header>
+
+    <section class="summary-grid" aria-label="Price summary">
+      <article class="summary-card">
+        <span class="summary-label">Latest annual average</span>
+        <strong class="summary-value" id="latestAverage">—</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">Five-year average</span>
+        <strong class="summary-value" id="fiveYearAverage">—</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">Change over period</span>
+        <strong class="summary-value" id="periodChange">—</strong>
+      </article>
+    </section>
+
+    <section class="chart-card" aria-labelledby="chartTitle">
+      <div class="chart-heading">
+        <div>
+          <h2 id="chartTitle">Annual average fare trend</h2>
+          <p class="chart-description">
+            Average price with an illustrative low-to-high fare range
+          </p>
+        </div>
+
+        <div class="legend" aria-label="Chart legend">
+          <span class="legend-item">
+            <span class="legend-line" aria-hidden="true"></span>
+            Average fare
+          </span>
+          <span class="legend-item">
+            <span class="legend-range" aria-hidden="true"></span>
+            Typical fare range
+          </span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="fareChart" aria-label="Chart of annual flight prices" role="img"></canvas>
+      </div>
+    </section>
+
+    <aside class="notice">
+      <strong>Data note:</strong> The prices below are fictional examples to demonstrate
+      the chart and analysis. Actual fares vary by departure city, travel dates,
+      airline, booking lead time, and other factors. Replace the sample values in
+      the <code>fareData</code> object with reliable fare data before using this
+      as a factual report.
+    </aside>
+  </main>
+
+  <script>
+    // Illustrative sample data for complete calendar years 2021–2025.
+    // Replace these values with sourced historical fare data as needed.
+    const fareData = [
+      { year: 2021, low: 700, average: 970, high: 1440 },
+      { year: 2022, low: 780, average: 1110, high: 1580 },
+      { year: 2023, low: 750, average: 1080, high: 1510 },
+      { year: 2024, low: 690, average: 1010, high: 1450 },
+      { year: 2025, low: 720, average: 1040, high: 1490 }
+    ];
+
+    const years = fareData.map(item => item.year);
+    const lows = fareData.map(item => item.low);
+    const highs = fareData.map(item => item.high);
+    const averages = fareData.map(item => item.average);
+
+    const formatCurrency = value =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+      }).format(value);
+
+    // Populate the summary cards from the sample data.
+    const latestAverage = averages[averages.length - 1];
+    const firstAverage = averages[0];
+    const fiveYearAverage =
+      averages.reduce((total, value) => total + value, 0) / averages.length;
+    const periodChange = ((latestAverage - firstAverage) / firstAverage) * 100;
+
+    document.getElementById("latestAverage").textContent =
+      formatCurrency(latestAverage);
+    document.getElementById("fiveYearAverage").textContent =
+      formatCurrency(fiveYearAverage);
+    document.getElementById("periodChange").textContent =
+      `${periodChange >= 0 ? "+" : ""}${periodChange.toFixed(1)}%`;
+
+    const chartContext = document.getElementById("fareChart").getContext("2d");
+
+    new Chart(chartContext, {
+      type: "line",
+      data: {
+        labels: years,
+        datasets: [
+          {
+            // Invisible lower boundary for the shaded fare range.
+            label: "Range lower boundary",
+            data: lows,
+            borderColor: "transparent",
+            pointRadius: 0,
+            fill: false
+          },
+          {
+            // Fill back to the lower boundary to create a range band.
+            label: "Range upper boundary",
+            data: highs,
+            borderColor: "transparent",
+            pointRadius: 0,
+            fill: "-1",
+            backgroundColor: "rgba(84, 214, 160, 0.15)"
+          },
+          {
+            label: "Average fare",
+            data: averages,
+            borderColor: "#54d6a0",
+            backgroundColor: "#54d6a0",
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: "#0b1220",
+            pointBorderWidth: 2,
+            tension: 0.25
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            filter: item => item.datasetIndex === 2,
+            callbacks: {
+              label: context =>
+                ` Average fare: ${formatCurrency(context.parsed.y)}`,
+              afterLabel: context => {
+                const index = context.dataIndex;
+                return ` Typical range: ${formatCurrency(lows[index])}–${formatCurrency(highs[index])}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: "rgba(152, 168, 190, 0.10)"
+            },
+            ticks: {
+              color: "#98a8be"
+            },
+            title: {
+              display: true,
+              text: "Calendar year",
+              color: "#98a8be"
+            }
+          },
+          y: {
+            beginAtZero: false,
+            grid: {
+              color: "rgba(152, 168, 190, 0.10)"
+            },
+            ticks: {
+              color: "#98a8be",
+              callback: value => `$${Number(value).toLocaleString()}`
+            },
+            title: {
+              display: true,
+              text: "Round-trip fare (USD)",
+              color: "#98a8be"
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
